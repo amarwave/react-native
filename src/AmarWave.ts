@@ -33,6 +33,9 @@ export class AmarWave extends EventEmitter {
 
   // AppState subscription handle
   private _appStateSub: { remove(): void } | null = null;
+  // NetInfo subscription handle
+  private _netInfoUnsub: (() => void) | null = null;
+  private _wasConnected: boolean = true;
 
   constructor(config: AmarWaveConfig) {
     super();
@@ -97,6 +100,7 @@ export class AmarWave extends EventEmitter {
     this.connection = new Connection(() => this.socketId);
 
     if (raw.handleAppState) this._registerAppState();
+    this._registerNetInfo();
   }
 
   // ─── Public API ───────────────────────────────────────────────────────────
@@ -124,6 +128,8 @@ export class AmarWave extends EventEmitter {
   destroy(): void {
     this._appStateSub?.remove();
     this._appStateSub = null;
+    this._netInfoUnsub?.();
+    this._netInfoUnsub = null;
     this.disconnect();
     this.unbind_global();
   }
@@ -408,6 +414,41 @@ export class AmarWave extends EventEmitter {
       });
     } catch {
       // Not running inside React Native — silently ignore
+    }
+  }
+
+  // ─── NetInfo (network reconnect) ─────────────────────────────────────────
+
+  private _registerNetInfo(): void {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const NetInfo = require('@react-native-community/netinfo').default as {
+        addEventListener(
+          listener: (state: { isConnected: boolean | null }) => void,
+        ): () => void;
+      };
+
+      this._netInfoUnsub = NetInfo.addEventListener((state) => {
+        const isConnected = state.isConnected ?? false;
+
+        if (!isConnected) {
+          // Network lost — close socket so OS doesn't keep a zombie connection
+          this._wasConnected = false;
+          this._intentional = true;
+          this._clearTimers();
+          this._ws?.close();
+        } else if (!this._wasConnected) {
+          // Network restored — reconnect
+          this._wasConnected = true;
+          this._intentional  = false;
+          this._retries      = 0;
+          if (Object.keys(this._channels).length > 0) {
+            this._openSocket();
+          }
+        }
+      });
+    } catch {
+      // @react-native-community/netinfo not installed — skip silently
     }
   }
 
