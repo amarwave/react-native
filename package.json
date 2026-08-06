@@ -1,0 +1,47 @@
+{
+  "name": "amarwave-react-native",
+  "version": "1.0.0",
+  "description": "Real-time WebSocket client for AmarWave — React Native SDK with hooks and AppState handling.",
+  "author": "AmarWave <mehedinaeem66@email.com>",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import":  "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types":   "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build":    "tsc --project tsconfig.build.json",
+    "dev":      "tsc --watch",
+    "lint":     "tsc --noEmit",
+    "test":     "echo 'No tests yet'"
+  },
+  "peerDependencies": {
+    "react":        ">=17.0.0",
+    "react-native": ">=0.68.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript":   "^5.4.5"
+  },
+  "keywords": [
+    "websocket",
+    "realtime",
+    "pubsub",
+    "amarwave",
+    "react-native",
+    "hooks"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url":  "https://github.com/amarwave/amarwave-react-native.git"
+  }
+}
