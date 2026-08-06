@@ -40,18 +40,58 @@ export class AmarWave extends EventEmitter {
   constructor(config: AmarWaveConfig) {
     super();
 
+    const cluster     = config.cluster ?? 'default';
+    const useTLS      = (config.forceTLS ?? false) ||
+                        (config.enabledTransports ?? ['ws']).includes('wss');
+    const clusterCfg  = CLUSTERS[cluster.toLowerCase()];
+
+    // Resolve host/port from cluster when the caller hasn't set wsHost explicitly.
+    // Falls back to the 'default' cluster (amarwave.com) if the name is unknown.
+    const resolvedCluster = clusterCfg ?? CLUSTERS['default']!;
+    const baseWsUrl   = config.wsHost
+      ? null
+      : (useTLS ? resolvedCluster.wss : resolvedCluster.ws);
+    const baseApiUrl  = config.apiHost
+      ? null
+      : resolvedCluster.api;
+
+    let wsHost  = config.wsHost  ?? '';
+    let wsPort  = config.wsPort  ?? (useTLS ? 443 : 80);
+    let wssPort = config.wssPort ?? 443;
+    let apiHost = config.apiHost ?? '';
+    let apiPort = config.apiPort ?? (useTLS ? 443 : 80);
+
+    if (baseWsUrl) {
+      try {
+        const p = new URL(baseWsUrl);
+        wsHost  = p.hostname;
+        wsPort  = parseInt(p.port) || (useTLS ? 443 : 80);
+        wssPort = parseInt(new URL(resolvedCluster.wss).port) || 443;
+      } catch { wsHost = 'amarwave.com'; }
+    }
+
+    if (baseApiUrl) {
+      try {
+        const p = new URL(baseApiUrl);
+        apiHost = p.hostname;
+        apiPort = parseInt(p.port) || (baseApiUrl.startsWith('https') ? 443 : 80);
+      } catch { apiHost = wsHost; }
+    }
+
+    if (!apiHost) apiHost = wsHost;
+
     const raw: ResolvedConfig = {
       appKey:            config.appKey             ?? '',
       appSecret:         config.appSecret          ?? '',
-      wsHost:            config.wsHost             ?? 'localhost',
-      wsPort:            config.wsPort             ?? 3001,
-      wssPort:           config.wssPort            ?? 443,
-      apiHost:           config.apiHost            ?? '',
-      apiPort:           config.apiPort            ?? 8000,
+      wsHost,
+      wsPort,
+      wssPort,
+      apiHost,
+      apiPort,
       apiPath:           config.apiPath            ?? '/api/v1/trigger',
       wsPath:            config.wsPath             ?? '/ws',
       forceTLS:          config.forceTLS           ?? false,
-      cluster:           config.cluster            ?? 'default',
+      cluster,
       authEndpoint:      config.authEndpoint       ?? '/broadcasting/auth',
       auth:              config.auth               ?? { headers: {} },
       reconnectDelay:    config.reconnectDelay     ?? 1000,
@@ -63,38 +103,6 @@ export class AmarWave extends EventEmitter {
       enabledTransports: config.enabledTransports  ?? ['ws'],
       handleAppState:    config.handleAppState     ?? true,
     };
-
-    if (!config.wsHost) {
-      const clusterKey = (raw.cluster ?? 'default').toLowerCase();
-      const clusterCfg = CLUSTERS[clusterKey];
-      const useTLS     = raw.forceTLS || raw.enabledTransports.includes('wss');
-
-      if (clusterCfg) {
-        const baseUrl = useTLS ? clusterCfg.wss : clusterCfg.ws;
-        try {
-          const parsed = new URL(baseUrl);
-          raw.wsHost  = parsed.hostname;
-          raw.wsPort  = parseInt(parsed.port) || (useTLS ? 443 : 80);
-          raw.wssPort = parseInt(new URL(clusterCfg.wss).port) || 443;
-          if (!config.apiHost) {
-            const apiParsed = new URL(clusterCfg.api);
-            raw.apiHost = apiParsed.hostname;
-            raw.apiPort = parseInt(apiParsed.port) ||
-                          (clusterCfg.api.startsWith('https') ? 443 : 80);
-          }
-        } catch { /* leave defaults */ }
-      } else if (raw.cluster && raw.cluster !== 'default') {
-        raw.wsHost  = raw.cluster;
-        raw.wssPort = 443;
-        raw.wsPort  = useTLS ? 443 : 3001;
-        if (!config.apiHost) {
-          raw.apiHost = raw.cluster;
-          raw.apiPort = useTLS ? 443 : 8000;
-        }
-      }
-    }
-
-    if (!raw.apiHost) raw.apiHost = raw.wsHost;
 
     this._cfg       = raw;
     this.connection = new Connection(() => this.socketId);
