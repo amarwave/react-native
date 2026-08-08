@@ -2,6 +2,10 @@
 
 React Native SDK for [AmarWave](https://amarwave.com) — real-time WebSocket client with built-in React hooks and AppState handling.
 
+[![npm](https://img.shields.io/npm/v/amarwave-react-native)](https://www.npmjs.com/package/amarwave-react-native)
+[![CI](https://github.com/amarwave/react-native/actions/workflows/ci.yml/badge.svg)](https://github.com/amarwave/react-native/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/amarwave-react-native)](LICENSE)
+
 ## Installation
 
 ```bash
@@ -164,6 +168,20 @@ Set `handleAppState: false` to manage this yourself.
 - **Pure-JS HMAC-SHA256** — no `crypto.subtle` dependency, safe on Hermes and JSC.
 - **WebSocket** — uses React Native's built-in global `WebSocket`.
 - **fetch** — uses React Native's built-in `fetch`.
+
+---
+
+## CI / CD
+
+Releases are published automatically to npm when a `v*` tag is pushed to `main`.
+
+```bash
+# bump version, tag, push → CI builds and publishes
+npm version patch   # or minor / major
+git push origin main --tags
+```
+
+The publish job uses npm's **OIDC Trusted Publisher** — no token is stored in GitHub secrets.
 
 ---
 
