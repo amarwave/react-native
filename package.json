@@ -1,6 +1,6 @@
 {
   "name": "amarwave-react-native",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Real-time WebSocket client for AmarWave — React Native SDK with hooks and AppState handling.",
   "author": "AmarWave <mehedinaeem66@email.com>",
   "main": "dist/index.js",
