@@ -179,8 +179,9 @@ export class AmarWave extends EventEmitter {
 
   async _httpPublish(channelName: string, event: string, data: unknown): Promise<boolean> {
     const c           = this._cfg;
-    const proto       = c.forceTLS ? 'https' : 'http';
-    const defaultPort = c.forceTLS ? 443 : 80;
+    const useTLS      = c.forceTLS || c.apiPort === 443;
+    const proto       = useTLS ? 'https' : 'http';
+    const defaultPort = useTLS ? 443 : 80;
     const portStr     = c.apiPort === defaultPort ? '' : `:${c.apiPort}`;
     const url         = `${proto}://${c.apiHost}${portStr}${c.apiPath}`;
     try {
